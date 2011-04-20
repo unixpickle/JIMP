@@ -15,14 +15,13 @@ public class OOTInsertGroup extends OOTObject {
 	private ByteBuffer encodedData (int groupIndex, OOTText groupName) {
 		try {
 			ByteBuffer buffer = ByteBuffer.allocate(15 + groupName.getTextString().length());
-			buffer.put(OOTObject.paddNumberToLength(groupIndex, 3).getBytes("UTF-8"));
+			buffer.put(OOTObject.padNumberToLength(groupIndex, 3).getBytes("UTF-8"));
 			buffer.put(groupName.encode());
 			buffer.position(0);
 			return buffer;
 		} catch (UnsupportedEncodingException e) {
-			
+			return null;
 		}
-		return null;
 	}
 	
 	public OOTInsertGroup (int groupIndex, String group) {

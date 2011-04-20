@@ -15,9 +15,8 @@ public class OOTInsertBuddy extends OOTObject {
 	private static ByteBuffer insertBuddyData (int buddyIndex, OOTBuddy buddy) {
 		ByteBuffer buffer = ByteBuffer.allocate((int)(3 + 12 + buddy.getContentLength()));
 		try {
-			buffer.put(OOTObject.paddNumberToLength(buddyIndex, 3).getBytes("UTF-8"));
+			buffer.put(OOTObject.padNumberToLength(buddyIndex, 3).getBytes("UTF-8"));
 		} catch (UnsupportedEncodingException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 			return null;
 		}

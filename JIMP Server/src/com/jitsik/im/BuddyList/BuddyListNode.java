@@ -26,32 +26,6 @@ public class BuddyListNode {
 		this.owner = owner;
 	}
 	
-	public BuddyListNode getNextNode () {
-		if (nextNodeID == 0) {
-			return null;
-		}
-		BuddyListNode node = null;
-		try {
-			node = BuddyListManager.findBuddyNodeWithID(nextNodeID);
-		} catch (SQLException e) {
-			return null;
-		}
-		return node;
-	}
-	
-	public BuddyListNode getPreviousNode () {
-		if (lastNodeID == 0) {
-			return null;
-		}
-		BuddyListNode node = null;
-		try {
-			node = BuddyListManager.findBuddyNodeWithID(lastNodeID);
-		} catch (SQLException e) {
-			return null;
-		}
-		return node;
-	}
-	
 	public long getNextNodeID () {
 		return nextNodeID;
 	}
@@ -76,9 +50,52 @@ public class BuddyListNode {
 		return owner;
 	}
 	
-	// inserts a BuddyListNode after another node.
-	// does change database, and the other nodes.
-	// if @node is null, this will be the first and last node.
+	/**
+	 * Fetch the next node through a node ID.
+	 * 
+	 * @return	The node that immediately follows this one.  This will return null
+	 * if there is a database error, or no other node is found.
+	 */
+	public BuddyListNode getNextNode () {
+		if (nextNodeID == 0) {
+			return null;
+		}
+		BuddyListNode node = null;
+		try {
+			node = BuddyListManager.findBuddyNodeWithID(nextNodeID);
+		} catch (SQLException e) {
+			return null;
+		}
+		return node;
+	}
+	
+	/**
+	 * Fetch the previous node through a node ID.
+	 * @return	The node that immediately precedes this one.  This will return null
+	 * if there is a database error, or no other node is found.
+	 */
+	public BuddyListNode getPreviousNode () {
+		if (lastNodeID == 0) {
+			return null;
+		}
+		BuddyListNode node = null;
+		try {
+			node = BuddyListManager.findBuddyNodeWithID(lastNodeID);
+		} catch (SQLException e) {
+			return null;
+		}
+		return node;
+	}
+	
+	
+	/**
+	 * Inserts the node directly after another node that is owned by the same user.
+	 *
+	 * @param node	The node of which we will insert ourselves after.  If this is null,
+	 * a new node will be created and added as the first and last node in a chain.
+	 * @throws SQLException	Thrown when there is an internal error while modifying
+	 * the database.
+	 */
 	public void insertAfterNode (BuddyListNode node) throws SQLException {
 		if (node == null) {
 			// default, first node configuration.
@@ -101,9 +118,14 @@ public class BuddyListNode {
 		if (next != null) BuddyListManager.updateBuddyListNode(next);
 	}
 	
-	// inserts a BuddyLIstNode before another node.
-	// does change database, and other nodes.
-	// if @node is null, this will be the first and last node.
+	/**
+	 * Inserts a node directly before another node that is owned by the same user.
+	 * 
+	 * @param node	The node of which we will insert ourselves before.  If this is null,
+	 * a new node will be created and added as the first and last node in a chain.
+	 * @throws SQLException	Thrown when there is an internal error while modifying
+	 * the database.
+	 */
 	public void insertBeforeNode (BuddyListNode node) throws SQLException {
 		if (node == null) {
 			// default, first node configuration.
@@ -128,6 +150,14 @@ public class BuddyListNode {
 		}
 	}
 	
+	/**
+	 * Removes this node from the node chain.  This will work for any node,
+	 * as long as it has already be added or obtained from a chain.
+	 * The previous and next nodes will be modified to fit this change.
+	 * 
+	 * @throws SQLException	Thrown when there is an internal error while modifying
+	 * the database
+	 */
 	public void removeFromList () throws SQLException {
 		if (this.nodeID == 0) {
 			throw new SQLException("Not in the database.");

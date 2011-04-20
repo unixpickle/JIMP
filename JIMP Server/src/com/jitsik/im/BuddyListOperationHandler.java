@@ -6,6 +6,7 @@ import com.jitsik.im.BuddyList.BuddyListGroupNode;
 import com.jitsik.im.BuddyList.BuddyListManager;
 import com.jitsik.im.BuddyList.BuddyListNode;
 import com.jitsik.im.OOTClass.BuddyOperations.OOTDeleteBuddy;
+import com.jitsik.im.OOTClass.BuddyOperations.OOTDeleteGroup;
 import com.jitsik.im.OOTClass.BuddyOperations.OOTInsertBuddy;
 import com.jitsik.im.OOTClass.BuddyOperations.OOTInsertGroup;
 
@@ -16,11 +17,11 @@ public class BuddyListOperationHandler {
 		try {
 			if (buddyInsert.getBuddyIndex() > 999) return false; // cannot have that!
 			if (buddyInsert.getBuddyIndex() < 0) return false;
-			Log.log(Log.LEVEL_DEBUG, "-handleAddGroup: start");
+			Log.log(Log.LEVEL_DEBUG, "-handleAddGroup: start, index = " + buddyInsert.getBuddyIndex());
 			long groupID = BuddyListManager.findGroupIDForName(accountUsername, buddyInsert.getBuddy().getGroup());
 			Log.log(Log.LEVEL_DEBUG, "-handleAddGroup: groupID = " + groupID);
 			if (groupID == 0) return false;
-			BuddyListNode node = new BuddyListNode(accountUsername, buddyInsert.getBuddy().getScreenName(), groupID);
+			BuddyListNode node = new BuddyListNode(accountUsername, buddyInsert.getBuddy().getScreenName().toLowerCase(), groupID);
 			BuddyListNode effectedNode = null;
 			BuddyListNode currentNode = null;
 			int desiredAfterIndex = buddyInsert.getBuddyIndex() - 1;
@@ -33,13 +34,15 @@ public class BuddyListOperationHandler {
 				} else if (desiredAfterIndex == -1 && currentIndex == 0)
 					effectedNode = currentNode;
 				
-				if (currentNode.getScreenname().toLowerCase().equals(buddyInsert.getBuddy().getScreenName().toLowerCase())) {
+				if (currentNode.getScreenname().equalsIgnoreCase(buddyInsert.getBuddy().getScreenName())) {
+					Log.log(Log.LEVEL_DEBUG, "-handleAddGroup: insert failed, buddy exists");
 					return false;
 				}
 				currentIndex += 1;
 				currentNode = currentNode.getNextNode();
 			}
 			if (effectedNode == null && !(currentIndex == 0 && buddyInsert.getBuddyIndex() == 0)) {
+				Log.log(Log.LEVEL_DEBUG, "-handleAddGroup: effected node is null.");
 				// if currentIndex was zero, then it would mean that this is
 				// our first buddy, and therefore there is no (null) other buddy.
 				return false;
@@ -100,7 +103,7 @@ public class BuddyListOperationHandler {
 			BuddyListNode node = null;
 			node = BuddyListManager.firstBuddyNodeForUser(accountUsername.toLowerCase());
 			while (node != null) {
-				if (node.getScreenname().toLowerCase().equals(delete.getScreenName().toLowerCase())) {
+				if (node.getScreenname().equalsIgnoreCase(delete.getScreenName())) {
 					node.removeFromList();
 					Log.log(Log.LEVEL_DEBUG, "-handleDeleteBuddy: deleted buddy");
 					return true;
@@ -113,6 +116,49 @@ public class BuddyListOperationHandler {
 			ex.printStackTrace();
 			return false;
 		}
+	}
+	
+	public static boolean handleDeleteGroup (String accountUsername, OOTDeleteGroup delete) {
+		try {
+			Log.log(Log.LEVEL_DEBUG, "-handleDeleteGroup: start");
+			BuddyListNode node = null;
+			BuddyListGroupNode groupNode = null;
+			node = BuddyListManager.firstBuddyNodeForUser(accountUsername.toLowerCase());
+			while (node != null) {
+				long groupID = node.getGroupID();
+				if (groupID != 0) {
+					BuddyListGroupNode group = BuddyListManager.findGroupNodeWithID(groupID);
+					if (group.getGroupName().equals(delete.getGroupName())) {
+						groupNode = group;
+						// we can delete it, but still get the next node
+						// since that will remain valid.
+						Log.log(Log.LEVEL_DEBUG, "-handleDeleteGroup: deleting buddy \"" + node.getScreenname() + "\"");
+						node.removeFromList();
+						BuddyListManager.deleteBuddyListNode(node);
+					}
+				}
+				node = node.getNextNode();
+			}
+			if (groupNode == null) {
+				Log.log(Log.LEVEL_DEBUG, "-handleDeleteGroup: no buddies with group specified (doing search).");
+				groupNode = BuddyListManager.firstGroupNodeForUser(accountUsername.toLowerCase());
+				while (groupNode != null) {
+					if (groupNode.getGroupName().equals(delete.getGroupName())) {
+						break;
+					}
+					groupNode = groupNode.getNextNode();
+				}
+			}
+			if (groupNode == null) {
+				Log.log(Log.LEVEL_DEBUG, "-handleDeleteGroup: group \"" + delete.getGroupName() + "\" not found");
+				return false;
+			}
+			groupNode.removeFromList();
+			Log.log(Log.LEVEL_DEBUG, "-handleDeleteGroup: done");
+		} catch (SQLException ex) {
+			return false;
+		}
+		return true;
 	}
 	
 }

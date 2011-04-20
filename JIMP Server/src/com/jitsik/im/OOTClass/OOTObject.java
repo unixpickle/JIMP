@@ -14,7 +14,14 @@ public class OOTObject {
 	protected long dataLength = 0;
 	protected byte[] classData;
 	
-	public static String paddNumberToLength (long number, int length) {
+	/**
+	 * Takes a number, and adds 0 digits to the beginning of the number's
+	 * text until it is a certain length.
+	 * @param number The number to pad
+	 * @param length The length to make the number after it is padded.
+	 * @return A string of the padded number.  Will be length or longer.
+	 */
+	public static String padNumberToLength (long number, int length) {
 		String numberString = "" + number;
 		while (numberString.length() < length) {
 			numberString = "0" + numberString;
@@ -122,20 +129,28 @@ public class OOTObject {
 		return classData;
 	}
 
+	/**
+	 * Gives a human readable string that describes the object, its class, and length.
+	 * @return the description of the object.
+	 */
 	public String toString () {
 		return "OOTObject(class:\"" + className + "\" length:" + dataLength + ")";
 	}
 
+	/**
+	 * Encodes the contents of the object so that it can be sent over the socket in
+	 * raw bytes.
+	 * @return The raw bytes of which to send over the socket.
+	 */
 	public byte[] encode () {
 		int encodeLength = 12;
 		if (classData != null) encodeLength += classData.length;
 		byte[] encoded = new byte[encodeLength];
-		String dataLengthString = OOTObject.paddNumberToLength(dataLength, 8);
+		String dataLengthString = OOTObject.padNumberToLength(dataLength, 8);
 		byte[] dataLengthStringBytes = null;
 		try {
 			dataLengthStringBytes = dataLengthString.getBytes("UTF-8");
 		} catch (UnsupportedEncodingException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 			return null;
 		}

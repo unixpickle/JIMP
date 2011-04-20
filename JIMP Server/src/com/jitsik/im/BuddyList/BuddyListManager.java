@@ -106,7 +106,6 @@ public class BuddyListManager {
 		return null;
 	}
 
-	// updates the next and last index, as well as the group ID.
 	public static void updateBuddyListNode (BuddyListNode blistNode) throws SQLException {
 		synchronized (databaseConnection) {
 			try {
@@ -135,6 +134,29 @@ public class BuddyListManager {
 				ArrayList<String> screenNames = new ArrayList<String>();
 				while (rs.next()) {
 					String screenName = rs.getString("screenname");
+					screenNames.add(screenName);
+				}
+				return screenNames;
+			} catch (SQLException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+				return null;
+			}
+		}
+	}
+	
+	public static ArrayList<String> allFollowersForBuddy (String user) {
+		synchronized (databaseConnection) {
+			try {
+				PreparedStatement prep = databaseConnection.prepareStatement("select * from buddies where (screenname=?)");
+				prep.setString(1, user);
+				ResultSet rs = prep.executeQuery();
+				if (rs == null) {
+					return null;
+				}
+				ArrayList<String> screenNames = new ArrayList<String>();
+				while (rs.next()) {
+					String screenName = rs.getString("owner");
 					screenNames.add(screenName);
 				}
 				return screenNames;

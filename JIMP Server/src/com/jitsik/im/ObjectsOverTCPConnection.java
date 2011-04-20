@@ -67,13 +67,10 @@ public class ObjectsOverTCPConnection {
 			if (!getIsOpen()) {
 				break;
 			}
-			
 			try {
 				Thread.sleep(100);
 			} catch (InterruptedException exception2) {
-				
 			}
-			
 			int currentlyHas = 0;
 			while (currentlyHas < 12) {
 				try {

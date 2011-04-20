@@ -16,10 +16,22 @@ public class Log {
 	public static final int LEVEL_DEBUG = 3;
 	public static final int LEVEL_ALL = 4;
 	
+	/**
+	 * Sets the debug level.  Any log of a level equal to or less
+	 * than this will be printed to the console.
+	 * @param level The level to use.
+	 */
 	public static void debugLevel (int level) {
 		debugLevel = level;
 	}
 	
+	/**
+	 * Prints out a string with a certain prefix (level based.)
+	 * This will do nothing if the debug level is a higher priority
+	 * than the level passed to this function.
+	 * @param level The level to use
+	 * @param message The message to print
+	 */
 	public static void log (int level, String message) {
 		if (debugLevel >= level) {
 			String prompt = "[LOG]     ";

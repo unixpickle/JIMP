@@ -17,11 +17,10 @@ public class OOTArray extends OOTObject {
 		ByteBuffer buffer = ByteBuffer.allocate(estimatedLength + 3);
 		
 		// populate the length string with 000 (3 length) string.
-		String lengthString = OOTObject.paddNumberToLength(objectsArray.size(), 3);
+		String lengthString = OOTObject.padNumberToLength(objectsArray.size(), 3);
 		try {
 			buffer.put(lengthString.getBytes("UTF-8"));
 		} catch (UnsupportedEncodingException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 			return null;
 		}

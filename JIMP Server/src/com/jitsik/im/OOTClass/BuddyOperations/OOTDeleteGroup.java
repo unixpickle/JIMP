@@ -34,7 +34,7 @@ public class OOTDeleteGroup extends OOTText {
 		this.className = "delb";
 	}
 
-	public String getScreenName () {
+	public String getGroupName () {
 		return groupName;
 	}
 	

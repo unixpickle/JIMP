@@ -5,13 +5,17 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 
+import com.jitsik.im.BuddyList.BuddyListManager;
 import com.jitsik.im.Database.AccountDatabaseManager;
 import com.jitsik.im.Database.AccountNotFoundException;
 import com.jitsik.im.Database.GenericDatabaseException;
 import com.jitsik.im.OOTClass.OOTAccount;
 import com.jitsik.im.OOTClass.OOTError;
+import com.jitsik.im.OOTClass.OOTGetStatus;
 import com.jitsik.im.OOTClass.OOTObject;
 import com.jitsik.im.OOTClass.OOTObjectLengthException;
+import com.jitsik.im.OOTClass.OOTStatus;
+import com.jitsik.im.StatusMessages.StatusMessageHandler;
 
 public class ServerSession implements Runnable {
 
@@ -34,6 +38,12 @@ public class ServerSession implements Runnable {
 		}
 	}
 
+	/**
+	 * Sets the username. This method can be called from
+	 * any thread, but shouldn't be called externally.
+	 * @param newUsername The username of which to set for this session.
+	 * This will be converted to lower case.
+	 */
 	private void setUsername (String newUsername) {
 		synchronized (usernameLock) {
 			if (newUsername != null)
@@ -42,7 +52,12 @@ public class ServerSession implements Runnable {
 		}
 	}
 
-	synchronized public String getUsername () {
+	/**
+	 * Gets a copy of the username.  This method can be called
+	 * from any thread at any time. 
+	 * @return A copy of the username.  Null if the session is not logged in.
+	 */
+	public String getUsername () {
 		String usernameCopy;
 		synchronized (usernameLock) {
 			if (username == null) {
@@ -101,6 +116,9 @@ public class ServerSession implements Runnable {
 		if (object.getClassName().equals("acco")) {
 			try {
 				OOTAccount account = new OOTAccount(object);
+				if (getUsername() != null) {
+					handleSessionSignoff();
+				}
 				Log.log(Log.LEVEL_DEBUG, "Account Object: " + account);
 				if (performAccountSignon(account)) {
 					Log.log(Log.LEVEL_DEBUG, "Login correct: " + account.getUsername());
@@ -136,7 +154,13 @@ public class ServerSession implements Runnable {
 				} catch (OOTObjectLengthException e1) {
 				}
 			}
-		} else if (object.getClassName().equals("pswd")) {
+		} 
+		
+		// code under this will only work
+		// if they are signed on.
+		if (getUsername() == null) return;
+		
+		if (object.getClassName().equals("pswd")) {
 			handlePasswordChange(object);
 		} else if (object.getClassName().equals("snof")) {
 			handleSessionSignoff();
@@ -166,9 +190,42 @@ public class ServerSession implements Runnable {
 				} catch (OOTObjectLengthException e1) {
 				}
 			}
+		} else if (object.getClassName().equals("delg")) {
+			if (!operations.handleDeleteGroup(object)) {
+				try {
+					this.sendObject(new OOTError(7, "The group could not be deleted from your buddy list."));
+				} catch (NotOpenException e1) {
+				} catch (OOTObjectLengthException e1) {
+				}
+			}
+		} else if (object.getClassName().equals("stts")) {
+			try {
+				OOTStatus status = new OOTStatus(object);
+				StatusMessageHandler.setStatusForUsername(status, this.getUsername());
+				broadcastStatus();
+			} catch (OOTObjectLengthException e1) {
+				Log.log(Log.LEVEL_ERROR, "Client sent invalid stts object");
+			}
+		} else if (object.getClassName().equals("gsts")) {
+			try {
+				OOTGetStatus getStatus = new OOTGetStatus(object);
+				OOTStatus status = StatusMessageHandler.statusForUsername(getStatus.getScreenName().toLowerCase());
+				if (status != null) {
+					sendStatusToBuddy(getUsername(), status);
+				}
+			} catch (OOTObjectLengthException e1) {
+				Log.log(Log.LEVEL_ERROR, "Client sent invalid gsts object");
+			}
 		}
 	}
 
+	/**
+	 * Signs on an account, signing off the previously signed on account.
+	 * 
+	 * @param account The account of which we will use to sign on.
+	 * @return Gives true on successful login, false if the username/password
+	 * was incorrect.
+	 */
 	private boolean performAccountSignon (OOTAccount account) {
 		if (this.getUsername() != null) return false;
 		boolean loginSuccess = false;
@@ -190,6 +247,12 @@ public class ServerSession implements Runnable {
 		return loginSuccess;
 	}
 
+	/**
+	 * Parses a signup object, and adds the new account to the database.
+	 * @param object The object that was received from the client.
+	 * @throws Exception Thrown when there is a database error,
+	 * or the object was not successfully parsed.
+	 */
 	private void handleSignup (OOTObject object) throws Exception {
 		OOTAccount account = new OOTAccount (object);
 		if (AccountDatabaseManager.getUsernameExists(account.getUsername())) {
@@ -202,6 +265,11 @@ public class ServerSession implements Runnable {
 		}
 	}
 
+	/**
+	 * Changes our password by parsing a password change object
+	 * 
+	 * @param object The object that is of the "pswd" class
+	 */
 	public void handlePasswordChange (OOTObject object) {
 		try {
 			String password = new String (object.getClassData());
@@ -227,12 +295,81 @@ public class ServerSession implements Runnable {
 		}
 	}
 
+	/**
+	 * Sets our status message appropriately, nulls our username,
+	 * broadcasts our departure.
+	 */
 	public void handleSessionSignoff () {
-		// TODO: go through all other sessions, find if this session
-		// is the last one of its screen name.  If it is, we will send
-		// an offline notification to all other clients.
 		Log.log(Log.LEVEL_EVENTS, "Session signoff: " + getUsername());
+		String myUsername = getUsername();
+		boolean sessionExists = false;
+		synchronized (sessions) {
+			for (ServerSession session : sessions) {
+				String otherUsername = session.getUsername();
+				if (username != null) {
+					if (otherUsername.equalsIgnoreCase(myUsername) && session != this) {
+						sessionExists = true;
+					}
+				}
+			}
+		}
+		if (!sessionExists) {
+			Log.log(Log.LEVEL_DEBUG, myUsername + " is no longer online, setting offline.");
+			StatusMessageHandler.goOfflineForUsername(myUsername);
+			broadcastStatus();
+		}
 		setUsername(null);
+	}
+	
+	/**
+	 * Sends our status to all of our followers, and ourselves.
+	*/
+	public void broadcastStatus () {
+		Log.log(Log.LEVEL_DEBUG, "-broadcastStatus: start");
+		String myUsername = this.getUsername();
+		if (myUsername == null) return;
+		OOTStatus status = StatusMessageHandler.statusForUsername(myUsername);
+		ArrayList<String> followers = BuddyListManager.allFollowersForBuddy(myUsername);
+		Log.log(Log.LEVEL_DEBUG, "-broadcastStatus: start");
+		Log.log(Log.LEVEL_DEBUG, "-broadcastStatus: status = " + status);
+		for (String follower : followers) {
+			Log.log(Log.LEVEL_DEBUG, "-broadcastStatus: follower " + follower);
+			sendStatusToBuddy(follower, status);
+		}
+		sendStatusToBuddy(myUsername.toLowerCase(), status);
+	}
+	
+	/**
+	 * Sends a status object to all sessions with
+	 * a specified screenname.
+	 * @param buddyName The screenname to send the status to.
+	 * @param status The status of which to send.
+	 */
+	public void sendStatusToBuddy (String buddyName, OOTStatus status) {
+		sendObjectToAccount(status, buddyName);
+	}
+	
+	/**
+	 * Sends an object to all sessions
+	 * with a specified screenname/account name.
+	 * @param object The object to send
+	 * @param account The username of the account to send
+	 * the object to.
+	 */
+	public void sendObjectToAccount (OOTObject object, String account) {
+		synchronized (sessions) {
+			for (ServerSession session : sessions) {
+				String username = session.getUsername();
+				if (username != null) {
+					if (username.equalsIgnoreCase(account)) {
+						try {
+							session.sendObject(object);
+						} catch (NotOpenException e) {
+						}
+					}
+				}
+			}
+		}
 	}
 
 }

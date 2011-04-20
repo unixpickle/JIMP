@@ -5,6 +5,7 @@ import com.jitsik.im.OOTClass.OOTBuddyListError;
 import com.jitsik.im.OOTClass.OOTObject;
 import com.jitsik.im.OOTClass.OOTObjectLengthException;
 import com.jitsik.im.OOTClass.BuddyOperations.OOTDeleteBuddy;
+import com.jitsik.im.OOTClass.BuddyOperations.OOTDeleteGroup;
 import com.jitsik.im.OOTClass.BuddyOperations.OOTInsertBuddy;
 import com.jitsik.im.OOTClass.BuddyOperations.OOTInsertGroup;
 
@@ -20,6 +21,9 @@ public class ServerSessionOperationHandler {
 		return session;
 	}
 
+	/**
+	 * Writes the buddy list to the session.
+	 */
 	public void sendAccountBuddyList () {
 		try {
 			OOTBuddyList blist = new OOTBuddyList(session.getUsername());
@@ -33,6 +37,12 @@ public class ServerSessionOperationHandler {
 		}
 	}
 
+	/**
+	 * Handles a buddy insert object.  This will update the buddy list, and
+	 * forward the insert object to all other sessions.
+	 * @param isrt The insert object that was received over the connection.
+	 * @return Gives true on complete success, false on any failure.
+	 */
 	public boolean handleInsertBuddy (OOTObject isrt) {
 		try {
 			Log.log(Log.LEVEL_DEBUG, "-handleInsertBuddy: creating addBuddy");
@@ -51,6 +61,12 @@ public class ServerSessionOperationHandler {
 		}	
 	}
 
+	/**
+	 * Handles a group insert object.  This will update the buddy list, and
+	 * forward the insert object to all other sessions.
+	 * @param irtg The insert object that was received over the connection.
+	 * @return Gives true on complete success, false on any failure.
+	 */
 	public boolean handleInsertGroup (OOTObject irtg) {
 		try {
 			Log.log(Log.LEVEL_DEBUG, "-handleInsertGroup: start");
@@ -68,6 +84,11 @@ public class ServerSessionOperationHandler {
 		}
 	}
 	
+	/**
+	 * Handles a delete object.  This will forward the delete to all other connections.
+	 * @param delb The delete object received over the connection.
+	 * @return Returns true if the buddy was deleted, false if there was ANY error.
+	 */
 	public boolean handleDeleteBuddy (OOTObject delb) {
 		try {
 			OOTDeleteBuddy deleteObject = new OOTDeleteBuddy(delb);
@@ -83,6 +104,31 @@ public class ServerSessionOperationHandler {
 		return true;
 	}
 	
+	/**
+	 * Handles a delete object.  This will forward the delete to all other connections.
+	 * @param delg The delete object received over the connection.
+	 * @return Returns true if the group was deleted, false if there was ANY error.
+	 */
+	public boolean handleDeleteGroup (OOTObject delg) {
+		try {
+			OOTDeleteGroup deleteObject = new OOTDeleteGroup(delg);
+			if (!BuddyListOperationHandler.handleDeleteGroup(session.getUsername(), deleteObject)) {
+				return false;
+			} else {
+				sendToAllSessions(delg);
+			}
+		} catch (OOTObjectLengthException e) {
+			e.printStackTrace();
+			return false;
+		}
+		return true;
+	}
+	
+	/**
+	 * Sends an object to all sessions signed on with
+	 * the account that the main session is signed on to.
+	 * @param object The object of which to forward.
+	 */
 	public void sendToAllSessions (OOTObject object) {
 		synchronized (ServerSession.sessions) {
 			for (ServerSession aSession : ServerSession.sessions) {
