@@ -8,6 +8,7 @@ import com.jitsik.im.OOTClass.BuddyOperations.OOTDeleteBuddy;
 import com.jitsik.im.OOTClass.BuddyOperations.OOTDeleteGroup;
 import com.jitsik.im.OOTClass.BuddyOperations.OOTInsertBuddy;
 import com.jitsik.im.OOTClass.BuddyOperations.OOTInsertGroup;
+import com.jitsik.im.OOTClass.Messaging.OOTMessage;
 
 public class ServerSessionOperationHandler {
 
@@ -125,23 +126,31 @@ public class ServerSessionOperationHandler {
 	}
 	
 	/**
+	 * Handles a message object.  This will send the message object to the specified
+	 * user, changing the object to include our username (for the sent field).
+	 * @param mssg The message object received from the client
+	 * @return true if the message was handled, false if there was an error sending
+	 * or parsing the message.
+	 */
+	public boolean handleMessageObject (OOTObject aMessage) {
+		try {
+			OOTMessage message = new OOTMessage(aMessage);
+			OOTMessage forward = new OOTMessage(session.getUsername().toLowerCase(), message.getMessage());
+			session.sendObjectToAccount(forward, message.getUsername());
+			return true;
+		} catch (OOTObjectLengthException e) {
+			return false;
+		}
+	}
+	
+	/**
 	 * Sends an object to all sessions signed on with
 	 * the account that the main session is signed on to.
 	 * @param object The object of which to forward.
 	 */
 	public void sendToAllSessions (OOTObject object) {
-		synchronized (ServerSession.sessions) {
-			for (ServerSession aSession : ServerSession.sessions) {
-				if (aSession.getUsername() != null) {
-					if (aSession.getUsername().equals(session.getUsername())) {
-						try {
-							aSession.sendObject(object);
-						} catch (NotOpenException e) {
-						}
-					}
-				}
-			}
-		}
+		String sessionUsername = session.getUsername();
+		session.sendObjectToAccount(object, sessionUsername);
 	}
 	
 	

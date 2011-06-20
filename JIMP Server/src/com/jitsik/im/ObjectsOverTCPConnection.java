@@ -68,7 +68,7 @@ public class ObjectsOverTCPConnection {
 				break;
 			}
 			try {
-				Thread.sleep(100);
+				Thread.sleep(10);
 			} catch (InterruptedException exception2) {
 			}
 			int currentlyHas = 0;
@@ -159,22 +159,29 @@ public class ObjectsOverTCPConnection {
 			}
 			// sleep for x milliseconds.
 			try {
-				Thread.sleep(100);
+				Thread.sleep(25);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
 		}
 	}
 	
-	// if @block is true, then this will block until
-	// a new object is waiting on the connection.
-	// if @block is false, this will return null if
-	// an object is not currently available.
+
+	/**
+	 * Reads an object from the socket.
+	 * @param block If this is true, this will block until
+	 * there is an object available for reading, or the socket has
+	 * been closed.  If this is false, this method will return null
+	 * immediately if there is not an object waiting.
+	 */
 	public OOTObject readObject (boolean block) throws NotOpenException {
 		if (!getIsOpen()) {
 			throw new NotOpenException();
 		}
 		while (true) {
+			if (!getIsOpen()) {
+				throw new NotOpenException();
+			}
 			synchronized (bufferedReads) {
 				if (bufferedReads.size() > 0) {
 					OOTObject object = bufferedReads.get(0);
@@ -184,9 +191,9 @@ public class ObjectsOverTCPConnection {
 			}
 			if (!block) break;
 			
-			// sleep for 100 milliseconds.
+			// sleep for x milliseconds.
 			try {
-				Thread.sleep(100);
+				Thread.sleep(25);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}

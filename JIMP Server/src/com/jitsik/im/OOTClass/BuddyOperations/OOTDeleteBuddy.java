@@ -1,5 +1,6 @@
 package com.jitsik.im.OOTClass.BuddyOperations;
 
+import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 
 import com.jitsik.im.OOTClass.OOTObject;
@@ -18,19 +19,31 @@ public class OOTDeleteBuddy extends OOTText {
 	
 	public OOTDeleteBuddy(byte[] data) throws OOTObjectLengthException {
 		super(data);
-		screenName = new String (getClassData());
+		try {
+			screenName = new String(this.getClassData(), "UTF-8");
+		} catch (UnsupportedEncodingException e) {
+			screenName = "";
+		}
 		this.className = "delb";
 	}
 	
 	public OOTDeleteBuddy(ByteBuffer buffer) throws OOTObjectLengthException {
 		super(buffer);
-		screenName = new String (getClassData());
+		try {
+			screenName = new String(this.getClassData(), "UTF-8");
+		} catch (UnsupportedEncodingException e) {
+			screenName = "";
+		}
 		this.className = "delb";
 	}
 	
 	public OOTDeleteBuddy(OOTObject anObject) throws OOTObjectLengthException {
 		super(anObject);
-		screenName = new String (getClassData());
+		try {
+			screenName = new String(this.getClassData(), "UTF-8");
+		} catch (UnsupportedEncodingException e) {
+			screenName = "";
+		}
 		this.className = "delb";
 	}
 

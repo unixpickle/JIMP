@@ -19,22 +19,38 @@ public class OOTText extends OOTObject {
 	
 	public OOTText (OOTObject object) {
 		super(object);
-		textString = new String(object.getClassData());
+		try {
+			textString = new String(this.getClassData(), "UTF-8");
+		} catch (UnsupportedEncodingException e) {
+			textString = "";
+		}
 	}
 	
 	public OOTText (byte[] data) throws OOTObjectLengthException {
 		super(ByteBuffer.wrap(data));
-		textString = new String(this.getClassData());
+		try {
+			textString = new String(this.getClassData(), "UTF-8");
+		} catch (UnsupportedEncodingException e) {
+			textString = "";
+		}
 	}
 	
 	public OOTText (ByteBuffer buffer) throws OOTObjectLengthException {
 		super(buffer);
-		textString = new String(this.getClassData());
+		try {
+			textString = new String(this.getClassData(), "UTF-8");
+		} catch (UnsupportedEncodingException e) {
+			textString = "";
+		}
 	}
 	
 	public OOTText (String string) throws OOTObjectLengthException {
 		super("text", bytesFromString(string));
-		textString = string;
+		try {
+			textString = new String(this.getClassData(), "UTF-8");
+		} catch (UnsupportedEncodingException e) {
+			textString = "";
+		}
 	}
 	
 	public String toString () {

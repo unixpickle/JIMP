@@ -156,6 +156,8 @@ public class ServerSession implements Runnable {
 			}
 		} 
 		
+		Log.log(Log.LEVEL_DEBUG, "Got object of class: " + object.getClassName());
+		
 		// code under this will only work
 		// if they are signed on.
 		if (getUsername() == null) return;
@@ -166,6 +168,17 @@ public class ServerSession implements Runnable {
 			handleSessionSignoff();
 		} else if (object.getClassName().equals("gbst")) {
 			operations.sendAccountBuddyList();
+		} else if (object.getClassName().equals("gsts")) {
+			try {
+				OOTGetStatus getStatus = new OOTGetStatus(object);
+				Log.log(Log.LEVEL_DEBUG, "Getting status: " + getStatus.getScreenName());
+				OOTStatus status = StatusMessageHandler.statusForUsername(getStatus.getScreenName().toLowerCase());
+				if (status != null) {
+					sendStatusToBuddy(getUsername(), status);
+				}
+			} catch (OOTObjectLengthException e1) {
+				Log.log(Log.LEVEL_ERROR, "Client sent invalid gsts object.");
+			}
 		} else if (object.getClassName().equals("isrt")) {
 			if (!operations.handleInsertBuddy(object)) {
 				try {
@@ -206,15 +219,9 @@ public class ServerSession implements Runnable {
 			} catch (OOTObjectLengthException e1) {
 				Log.log(Log.LEVEL_ERROR, "Client sent invalid stts object");
 			}
-		} else if (object.getClassName().equals("gsts")) {
-			try {
-				OOTGetStatus getStatus = new OOTGetStatus(object);
-				OOTStatus status = StatusMessageHandler.statusForUsername(getStatus.getScreenName().toLowerCase());
-				if (status != null) {
-					sendStatusToBuddy(getUsername(), status);
-				}
-			} catch (OOTObjectLengthException e1) {
-				Log.log(Log.LEVEL_ERROR, "Client sent invalid gsts object");
+		} else if (object.getClassName().equals("mssg")) {
+			if (!operations.handleMessageObject(object)) {
+				Log.log(Log.LEVEL_ERROR, "Client sent invalid mssg object.");
 			}
 		}
 	}
